@@ -99,7 +99,7 @@ def stat_main(seed_start: int = Argument(0), seed_end: int = Argument(None)):
             if c["count"] == 0:
                 row.append("[red]N/A[/]")
             else:
-                row.append(Pretty(c["score_sum"] / c["count"]))
+                row.append(f'[cyan]{c["score_sum"] / c["count"]:.2f}')
         table.add_row(
             f"[{s},{e})" if i != len(eps_seps) - 2 else f"[{s},{e}]",
             *row,
@@ -127,10 +127,10 @@ def stat_main(seed_start: int = Argument(0), seed_end: int = Argument(None)):
     foot_table.add_column("name")
     foot_table.add_column("value")
 
-    foot_table.add_row("[bold]All Count", Pretty(all_count["count"]))
-    foot_table.add_row("[bold]All Score Sum", Pretty(all_count["score_sum"]))
+    foot_table.add_row("[bold]All Count", f'[cyan]{all_count["count"]}')
+    foot_table.add_row("[bold]All Score Sum", f'[cyan]{all_count["score_sum"]:.2f}')
     foot_table.add_row(
-        "[bold]Average", Pretty(all_count["score_sum"] / all_count["count"])
+        "[bold]Average", f'[cyan]{all_count["score_sum"] / all_count["count"]:.2f}'
     )
 
     console.print(table)
