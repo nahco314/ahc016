@@ -5,10 +5,23 @@ description = ""
 authors = ["nahco314 <nahco3_ta@yahoo.co.jp>"]
 readme = "README.md"
 
+[tool.poetry.scripts]
+t = "tools.py.main:main"
+
 [tool.poetry.dependencies]
 python = "^3.11"
-
+typer = {extras = ["all"], version = "^0.7.0"}
+black = "^22.10.0"
+isort = "^5.10.1"
+compatibilityer = "^0.3.8"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+line_length = 88
+force_single_line = true
