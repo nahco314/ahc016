@@ -2,6 +2,7 @@ import re
 import subprocess
 from functools import partial
 from multiprocessing import Pool
+from multiprocessing import cpu_count
 from time import perf_counter
 
 from rich.progress import Progress
@@ -22,9 +23,14 @@ def run(seed: int, verbose: bool = False) -> int:
         capture_output=True,
     )
     time = perf_counter() - start
-    score = int(
-        re.match("Score = (\d+)", res.stderr.decode("utf-8").splitlines()[-1]).group(1)
-    )
+    try:
+        score = int(
+            re.match(
+                "Score = (\d+)", res.stderr.decode("utf-8").splitlines()[-1]
+            ).group(1)
+        )
+    except Exception:
+        print(res.stderr.decode("utf-8"))
 
     with open(f"./score/{seed:04}.txt", "w") as f:
         f.write(f"{score}")
@@ -42,7 +48,7 @@ def multi_run(
     if multi_process:
         with Progress() as progress:
             task = progress.add_task("Running...", total=len(seed_range))
-            with Pool(5) as p:
+            with Pool(cpu_count()) as p:
                 start = perf_counter()
                 results = []
 
