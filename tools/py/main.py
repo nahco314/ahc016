@@ -7,8 +7,8 @@ app = Typer()
 
 
 @app.command()
-def run(seed: int):
-    score = run_.run(seed)
+def run(seed: int, verbose: bool = False):
+    score = run_.run(seed, verbose)
     console.print(f"score: {score}")
 
 

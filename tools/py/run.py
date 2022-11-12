@@ -1,5 +1,6 @@
 import re
 import subprocess
+import sys
 from functools import partial
 from multiprocessing import Pool
 from multiprocessing import cpu_count
@@ -37,6 +38,8 @@ def run(seed: int, verbose: bool = False) -> int:
 
     if verbose:
         print("end", seed, time)
+
+        print(res.stderr.decode("utf-8"), file=sys.stderr)
     return score
 
 
@@ -73,8 +76,5 @@ def multi_run(
         time = perf_counter() - start
 
     score_avg = score_sum / len(seed_range)
-
-    with open(f"./score/0.txt", "w") as f:
-        f.write(f"{score_sum} {score_avg}")
 
     return score_sum, score_avg
