@@ -2,6 +2,7 @@ import re
 import subprocess
 import sys
 from functools import partial
+from itertools import count
 from multiprocessing import Pool
 from multiprocessing import cpu_count
 from time import perf_counter
@@ -11,6 +12,8 @@ from rich.progress import Task
 from rich.progress import track
 
 from tools.py.console import console
+from tools.py.utils import is_exist
+from tools.py.utils import rm_score
 
 
 def run(seed: int, verbose: bool = False) -> int:
@@ -74,6 +77,11 @@ def multi_run(
         for seed in track(seed_range):
             score_sum += run(seed, verbose=verbose)
         time = perf_counter() - start
+
+    for i in count(seed_range.stop):
+        if not is_exist(i):
+            break
+        rm_score(i)
 
     score_avg = score_sum / len(seed_range)
 

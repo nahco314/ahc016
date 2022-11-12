@@ -12,6 +12,7 @@ from typer import Argument
 from typer import Typer
 
 from tools.py.console import console
+from tools.py.utils import is_exist
 
 app = Typer()
 
@@ -64,10 +65,6 @@ def load_seed(seed: int):
 
     all_count["score_sum"] += score
     all_count["count"] += 1
-
-
-def is_exist(seed: int):
-    return Path(f"./score/{seed:04}.txt").is_file()
 
 
 @app.command()
