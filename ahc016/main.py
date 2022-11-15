@@ -46,38 +46,11 @@ class Graph:
 
 
 def encode(n: int, m: int, eps: float, num: int) -> Graph:
-    g = Graph(n)
-    ms = min(num + 1, n)
-    for i in range(ms):
-        for j in range(i + 1, ms):
-            g.connect(i, j)
-    return g
-
-
-def calc_diff(n: int, m: int, eps: float, num: int, d_c: Counter[int]):
-    zero_cnt = n
-    p_cnt = 0
-    if num != 0:
-        zero_cnt -= num + 1
-        p_cnt += num + 1
-
-    e_lst = [0] * zero_cnt + [num + 1] * p_cnt
-
-    lst = []
-    for i in range(n):
-        lst.extend([i] * d_c[i])
-
-    res = 0
-    for i, j in zip(lst, e_lst):
-        res += abs(i - j) ** 3
-
-    return res
+    return Graph.from_01(n, "1" * num + "0" * (190 - num))
 
 
 def decode(n: int, m: int, eps: float, g: Graph) -> int:
-    d_c = Counter(g.degrees)
-    best = min(range(m), key=lambda i: calc_diff(n, m, eps, i, d_c))
-    return best
+    return min(sum(g._is_connected, []).count(True), m - 1)
 
 
 def main():
@@ -85,7 +58,10 @@ def main():
     m = int(m)
     eps = float(eps)
 
-    n = 100
+    n = 20
+    for n in range(4, 100):
+        if n * (n - 1) // 2 >= m:
+            break
 
     print(n)
     for i in range(m):
