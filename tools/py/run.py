@@ -52,6 +52,7 @@ def multi_run(
     score_sum = 0
 
     if multi_process:
+        console.print(f"use {cpu_count()} processes")
         with Progress() as progress:
             task = progress.add_task("Running...", total=len(seed_range))
             with Pool(cpu_count()) as p:
@@ -73,6 +74,8 @@ def multi_run(
                 time = perf_counter() - start
 
     else:
+        console.print(f"use 1 processes (single process)")
+
         start = perf_counter()
         for seed in track(seed_range):
             score_sum += run(seed, verbose=verbose)
