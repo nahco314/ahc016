@@ -16,6 +16,8 @@ black = "^22.10.0"
 isort = "^5.10.1"
 compatibilityer = "^0.3.8"
 networkx = "^2.8.8"
+numpy = "^1.23.4"
+scipy = "^1.9.3"
 
 [build-system]
 requires = ["poetry-core"]
