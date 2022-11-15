@@ -15,6 +15,7 @@ typer = {extras = ["all"], version = "^0.7.0"}
 black = "^22.10.0"
 isort = "^5.10.1"
 compatibilityer = "^0.3.8"
+networkx = "^2.8.8"
 
 [build-system]
 requires = ["poetry-core"]
