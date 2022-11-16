@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import statistics
 import sys
 from collections import Counter
 
@@ -286,15 +287,93 @@ graphs = [
 ]
 
 
-def encode(n: int, m: int, eps: float, num: int) -> Graph:
-    return graphs[n][num]
+class ConverterBase:
+    def encode(self, n: int, m: int, eps: float, num: int) -> Graph:
+        raise NotImplementedError
+
+    def decode(self, n: int, m: int, eps: float, g: Graph) -> int:
+        raise NotImplementedError
 
 
-def decode(n: int, m: int, eps: float, g: Graph) -> int:
-    for i, g2 in enumerate(graphs[n]):
-        if nx.is_isomorphic(g.to_nx_graph(), g2.to_nx_graph()):
-            return min(i, m - 1)
-    assert False, "unreachable"
+class Converter(ConverterBase):
+    def encode(self, n: int, m: int, eps: float, num: int) -> Graph:
+        return graphs[n][num]
+
+    def decode(self, n: int, m: int, eps: float, g: Graph) -> int:
+        for i, g2 in enumerate(graphs[n]):
+            if nx.is_isomorphic(g.to_nx_graph(), g2.to_nx_graph()):
+                return min(i, m - 1)
+        assert False, "unreachable"
+
+
+class WeakConverter(ConverterBase):
+    def encode(self, n: int, m: int, eps: float, num: int) -> Graph:
+        g = Graph(n)
+        ms = num + (n - m)
+        for i in range(ms):
+            for j in range(i + 1, ms):
+                g.connect(i, j)
+
+        if ms < n // 2:
+            missing = n // 2 - ms
+            p = 0
+            for i in range(ms):
+                for j in range(missing):
+                    g.connect(i, ms + p)
+                    p += 1
+                    p %= n - ms
+
+        return g
+
+    def calc_diff(self, n: int, m: int, eps: float, num: int, d_c: Counter[int]):
+        zero_cnt = n
+        p_cnt = 0
+        if num != 0:
+            zero_cnt -= num + 1
+            p_cnt += num + 1
+
+        e_lst = [0] * zero_cnt + [num + 1] * p_cnt
+
+        lst = []
+        for i in range(n):
+            lst.extend([i] * d_c[i])
+
+        res = 0
+        for i, j in zip(lst, e_lst):
+            res += abs(i - j) ** 3
+
+        return res
+
+    def clustering(self, data: list[int]) -> tuple[list[int], list[int]]:
+        data = sorted(data)
+        n = len(data)
+        a = data.copy()
+        b = []
+
+        best_score = 10**10
+        best_a = []
+        best_b = []
+
+        for i in range(n + 1):
+            score = 0
+            a_center = statistics.mean(a) if a else 0
+            for j in range(n - i):
+                score += abs(a[j] - a_center) ** 2
+            b_center = statistics.mean(b) if b else 0
+            for j in range(i):
+                score += abs(b[j - i] - b_center) ** 2
+            if score < best_score:
+                best_score = score
+                best_a = a.copy()
+                best_b = b.copy()
+            if a:
+                b.append(a.pop())
+
+        return best_a, best_b
+
+    def decode(self, n: int, m: int, eps: float, g: Graph) -> int:
+        a, b = self.clustering(g.degrees)
+        return max(min(len(b) - (n - m), m - 1), 0)
 
 
 def main():
@@ -304,22 +383,32 @@ def main():
     m = int(m)
     eps = float(eps)
 
-    n = -1
-    for i in range(len(graphs)):
-        if len(graphs[i]) >= m:
-            n = i
-            break
+    if eps <= 0.05:
+        n = -1
+        for i in range(len(graphs)):
+            if len(graphs[i]) >= m:
+                n = i
+                break
+
+        converter = Converter()
+    else:
+        if eps < 0.2:
+            n = min(round(m * 2), 100)
+        else:
+            n = 100
+
+        converter = WeakConverter()
 
     print(n)
     for i in range(m):
-        print(encode(n, m, eps, i).to_01())
+        print(converter.encode(n, m, eps, i).to_01())
 
     for i in range(100):
         g_01 = input()
         with open("./raw_input.txt", "a") as f:
             f.write(f"{g_01}\n")
         g = Graph.from_01(n, g_01)
-        print(decode(n, m, eps, g))
+        print(converter.decode(n, m, eps, g))
 
 
 if __name__ == "__main__":
