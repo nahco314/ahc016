@@ -310,39 +310,17 @@ class WeakConverter(ConverterBase):
     def encode(self, n: int, m: int, eps: float, num: int) -> Graph:
         g = Graph(n)
         ms = num + (n - m)
-        for i in range(ms):
-            for j in range(i + 1, ms):
-                g.connect(i, j)
 
         if ms < n // 2:
-            missing = n // 2 - ms
-            p = 0
             for i in range(ms):
-                for j in range(missing):
-                    g.connect(i, ms + p)
-                    p += 1
-                    p %= n - ms
+                for j in range(i + 1, n):
+                    g.connect(i, j)
+        else:
+            for i in range(ms):
+                for j in range(i + 1, ms):
+                    g.connect(i, j)
 
         return g
-
-    def calc_diff(self, n: int, m: int, eps: float, num: int, d_c: Counter[int]):
-        zero_cnt = n
-        p_cnt = 0
-        if num != 0:
-            zero_cnt -= num + 1
-            p_cnt += num + 1
-
-        e_lst = [0] * zero_cnt + [num + 1] * p_cnt
-
-        lst = []
-        for i in range(n):
-            lst.extend([i] * d_c[i])
-
-        res = 0
-        for i, j in zip(lst, e_lst):
-            res += abs(i - j) ** 3
-
-        return res
 
     def clustering(self, data: list[int]) -> tuple[list[int], list[int]]:
         data = sorted(data)
@@ -372,6 +350,7 @@ class WeakConverter(ConverterBase):
         return best_a, best_b
 
     def decode(self, n: int, m: int, eps: float, g: Graph) -> int:
+        print("#", sorted(g.degrees))
         a, b = self.clustering(g.degrees)
         return max(min(len(b) - (n - m), m - 1), 0)
 
@@ -393,7 +372,7 @@ def main():
         converter = Converter()
     else:
         if eps < 0.2:
-            n = min(round(m * 2), 100)
+            n = max(50, min(round(m), 100))
         else:
             n = 100
 
