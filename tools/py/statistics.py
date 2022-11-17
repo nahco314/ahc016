@@ -17,7 +17,7 @@ from tools.py.utils import is_exist
 app = Typer()
 
 m_seps = [10, 30, 50, 75, 100]
-eps_seps = [0.00, 0.01, 0.1, 0.2, 0.3, 0.4]
+eps_seps = [0.00, 0.01, 0.1, 0.2, 0.3, 0.35, 0.4, 0.4]
 
 
 def classification_seed(seed: int):

@@ -1,9 +1,13 @@
+from itertools import count
+
 from rich.panel import Panel
 from termplotlib.figure import Figure
+from typer import Argument
 from typer import Typer
 
 from tools.py.console import console
 from tools.py.utils import count_seps
+from tools.py.utils import is_exist
 
 app = Typer()
 
@@ -38,12 +42,15 @@ def analyze_seed(seed: int):
         if answers[i] != corrects[i]:
             wrongs.append((i, answers[i], corrects[i]))
 
-    return m, eps, n, graphs, wrongs
+    with open(f"./score/{seed:04}.txt") as f:
+        score = int(f.readline())
+
+    return m, eps, n, graphs, answers, corrects, wrongs, score
 
 
-@app.command()
+@app.command("a")
 def analyze_main(seed: int):
-    m, eps, n, graphs, wrongs = analyze_seed(seed)
+    m, eps, n, graphs, answers, corrects, wrongs, score = analyze_seed(seed)
     console.print(f"m={m}, eps={eps}, n={n}")
     console.print("wrongs nums:")
     nums = []
@@ -61,6 +68,18 @@ def analyze_main(seed: int):
             names.append(f"[{s},{e})")
     fig.barh(list(map(len, c_vals)), names)
     console.print(Panel(fig, highlight=True))
+
+
+@app.command("all")
+def analyze_all(seed_start: int = Argument(0), seed_end: int = Argument(None)):
+    it = range(seed_start, seed_end) if seed_end is not None else count(seed_start)
+
+    for i in it:
+        if not is_exist(i):
+            break
+        m, eps, n, graphs, answers, corrects, wrongs, score = analyze_seed(i)
+        if eps >= 0.35:
+            console.print(i, score, m, eps)
 
 
 def main():
