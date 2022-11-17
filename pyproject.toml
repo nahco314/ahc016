@@ -8,6 +8,7 @@ readme = "README.md"
 [tool.poetry.scripts]
 t = "tools.py.main:main"
 stat = "tools.py.statistics:main"
+an = "tools.py.analyze:main"
 
 [tool.poetry.dependencies]
 python = "^3.11"
