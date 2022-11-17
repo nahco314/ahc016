@@ -1,6 +1,9 @@
+from rich.panel import Panel
+from termplotlib.figure import Figure
 from typer import Typer
 
 from tools.py.console import console
+from tools.py.utils import count_seps
 
 app = Typer()
 
@@ -47,6 +50,17 @@ def analyze_main(seed: int):
     for i, a, c in wrongs:
         nums.append(a)
     console.out(sorted(nums))
+
+    fig = Figure()
+    ranges, c_vals = count_seps([i for i in range(0, 101, 5)], nums)
+    names = []
+    for s, e, is_last in ranges:
+        if is_last:
+            names.append(f"[{s},{e}]")
+        else:
+            names.append(f"[{s},{e})")
+    fig.barh(list(map(len, c_vals)), names)
+    console.print(Panel(fig, highlight=True))
 
 
 def main():
