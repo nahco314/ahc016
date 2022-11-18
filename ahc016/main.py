@@ -57,6 +57,24 @@ class Graph:
                     g.add_edge(i, j)
         return g
 
+    def floyd_warshall(self) -> list[list[int]]:
+        dist = [[float("inf")] * self.n for _ in range(self.n)]
+        for i in range(self.n):
+            dist[i][i] = 0
+        for i in range(self.n):
+            for j in range(i + 1, self.n):
+                if self.is_connected(i, j):
+                    dist[i][j] = 1
+                    dist[j][i] = 1
+        for k in range(self.n):
+            for i in range(self.n):
+                for j in range(self.n):
+                    dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])
+        return dist
+
+    def adj(self, i: int) -> list[int]:
+        return [j for j in range(self.n) if self.is_connected(i, j)]
+
 
 # 埋め込み最高！
 # graphs[i] := 同型なグラフを含まない、すべてのi頂点グラフのリスト
@@ -288,6 +306,12 @@ graphs = [
 
 
 class ConverterBase:
+    def decide_num(self, n: int, m: int, eps: float, num: int) -> int:
+        return num
+
+    def reconstruction(self, n: int, m: int, eps: float, num: int) -> int:
+        return num
+
     def encode(self, n: int, m: int, eps: float, num: int) -> Graph:
         raise NotImplementedError
 
@@ -295,21 +319,31 @@ class ConverterBase:
         raise NotImplementedError
 
 
-class Converter(ConverterBase):
+class OptimumConverter(ConverterBase):
     def encode(self, n: int, m: int, eps: float, num: int) -> Graph:
-        return graphs[n][num]
+        return graphs[n][self.decide_num(n, m, eps, num)]
 
     def decode(self, n: int, m: int, eps: float, g: Graph) -> int:
         for i, g2 in enumerate(graphs[n]):
             if nx.is_isomorphic(g.to_nx_graph(), g2.to_nx_graph()):
-                return min(i, m - 1)
+                return min(self.reconstruction(n, m, eps, i), m - 1)
         assert False, "unreachable"
 
 
-class WeakConverter(ConverterBase):
+class Converter(ConverterBase):
+    def __init__(self):
+        self._map = {}
+
+    def decide_num(self, n: int, m: int, eps: float, num: int) -> int:
+        res = num + (n - m)
+        return res
+
+    def reconstruction(self, n: int, m: int, eps: float, num: int) -> int:
+        return num - (n - m)
+
     def encode(self, n: int, m: int, eps: float, num: int) -> Graph:
         g = Graph(n)
-        ms = num + (n - m)
+        ms = self.decide_num(n, m, eps, num)
 
         if ms < n // 2:
             for i in range(ms):
@@ -334,16 +368,20 @@ class WeakConverter(ConverterBase):
 
         for i in range(n + 1):
             score = 0
+
             a_center = statistics.mean(a) if a else 0
             for j in range(n - i):
                 score += abs(a[j] - a_center) ** 2
             b_center = statistics.mean(b) if b else 0
+
             for j in range(i):
                 score += abs(b[j - i] - b_center) ** 2
+
             if score < best_score:
                 best_score = score
                 best_a = a.copy()
                 best_b = b.copy()
+
             if a:
                 b.append(a.pop())
 
@@ -351,8 +389,41 @@ class WeakConverter(ConverterBase):
 
     def decode(self, n: int, m: int, eps: float, g: Graph) -> int:
         print("#", sorted(g.degrees))
+
         a, b = self.clustering(g.degrees)
-        return max(min(len(b) - (n - m), m - 1), 0)
+
+        forecast_1 = len(b)
+
+        res = self.reconstruction(n, m, eps, forecast_1)
+        res = max(min(res, m - 1), 0)
+
+        print("#", sorted(self.encode(n, m, eps, res).degrees))
+
+        return res
+
+
+class HighEpsConverter(Converter):
+    def decode(self, n: int, m: int, eps: float, g: Graph) -> int:
+        print("#", sorted(g.degrees))
+
+        d2 = []
+        for i in range(n):
+            d_i = 0
+            d_i += g.degrees[i]
+            for j in g.adj(i):
+                d_i += g.degrees[j]
+            d2.append(d_i)
+
+        a, b = self.clustering(d2)
+
+        forecast_1 = len(b)
+
+        res = self.reconstruction(n, m, eps, forecast_1)
+        res = max(min(res, m - 1), 0)
+
+        print("#", sorted(self.encode(n, m, eps, res).degrees))
+
+        return res
 
 
 def main():
@@ -369,14 +440,17 @@ def main():
                 n = i
                 break
 
-        converter = Converter()
-    else:
+        converter = OptimumConverter()
+    elif eps < 0.3:
         if eps < 0.2:
             n = max(50, min(round(m), 100))
         else:
             n = 100
 
-        converter = WeakConverter()
+        converter = Converter()
+    else:
+        n = 100
+        converter = HighEpsConverter()
 
     print(n)
     for i in range(m):
