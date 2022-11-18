@@ -55,7 +55,7 @@ def analyze_main(seed: int):
     console.print("wrongs nums:")
     nums = []
     for i, a, c in wrongs:
-        nums.append(a)
+        nums.append(c)
     console.out(sorted(nums))
 
     fig = Figure()
@@ -68,6 +68,9 @@ def analyze_main(seed: int):
             names.append(f"[{s},{e})")
     fig.barh(list(map(len, c_vals)), names)
     console.print(Panel(fig, highlight=True))
+
+    for i in range(100):
+        print(i, answers[i], corrects[i], answers[i] - corrects[i])
 
 
 @app.command("all")
