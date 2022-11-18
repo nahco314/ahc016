@@ -306,48 +306,69 @@ graphs = [
 
 
 class ConverterBase:
-    def decide_num(self, n: int, m: int, eps: float, num: int) -> int:
+    def __init__(self, n: int, m: int, eps: float):
+        self.n = n
+        self.m = m
+        self.eps = eps
+
+    def decide_num(self, num: int) -> int:
         return num
 
-    def reconstruction(self, n: int, m: int, eps: float, num: int) -> int:
+    def reconstruction(self, num: int) -> int:
         return num
 
-    def encode(self, n: int, m: int, eps: float, num: int) -> Graph:
+    def encode(self, num: int) -> Graph:
         raise NotImplementedError
 
-    def decode(self, n: int, m: int, eps: float, g: Graph) -> int:
+    def decode(self, g: Graph) -> int:
         raise NotImplementedError
 
 
 class OptimumConverter(ConverterBase):
-    def encode(self, n: int, m: int, eps: float, num: int) -> Graph:
-        return graphs[n][self.decide_num(n, m, eps, num)]
+    def __init__(self, m: int, eps: float):
+        n = -1
+        for i in range(len(graphs)):
+            if len(graphs[i]) >= m:
+                n = i
+                break
+        super().__init__(n, m, eps)
 
-    def decode(self, n: int, m: int, eps: float, g: Graph) -> int:
-        for i, g2 in enumerate(graphs[n]):
+    def encode(self, num: int) -> Graph:
+        return graphs[self.n][self.decide_num(num)]
+
+    def decode(self, g: Graph) -> int:
+        for i, g2 in enumerate(graphs[self.n]):
             if nx.is_isomorphic(g.to_nx_graph(), g2.to_nx_graph()):
-                return min(self.reconstruction(n, m, eps, i), m - 1)
+                return min(self.reconstruction(i), self.m - 1)
         assert False, "unreachable"
 
 
 class Converter(ConverterBase):
-    def __init__(self):
-        self._map = {}
+    def __init__(self, m: int, eps: float, n_: int = None):
+        if eps < 0.2:
+            n = m
+        else:
+            n = 100
 
-    def decide_num(self, n: int, m: int, eps: float, num: int) -> int:
-        res = num + (n - m)
+        if n_ is not None:
+            n = n_
+
+        super().__init__(n, m, eps)
+
+    def decide_num(self, num: int) -> int:
+        res = num + (self.n - self.m)
         return res
 
-    def reconstruction(self, n: int, m: int, eps: float, num: int) -> int:
-        return num - (n - m)
+    def reconstruction(self, num: int) -> int:
+        return num - (self.n - self.m)
 
-    def encode(self, n: int, m: int, eps: float, num: int) -> Graph:
-        g = Graph(n)
-        ms = self.decide_num(n, m, eps, num)
+    def encode(self, num: int) -> Graph:
+        g = Graph(self.n)
+        ms = self.decide_num(num)
 
-        if ms < n // 2:
+        if ms < self.n // 2:
             for i in range(ms):
-                for j in range(i + 1, n):
+                for j in range(i + 1, self.n):
                     g.connect(i, j)
         else:
             for i in range(ms):
@@ -389,27 +410,57 @@ class Converter(ConverterBase):
 
         return best_a, best_b
 
-    def decode(self, n: int, m: int, eps: float, g: Graph) -> int:
+    def decode(self, g: Graph) -> int:
         print("#", sorted(g.degrees))
 
         a, b = self.clustering(g.degrees)
 
         forecast_1 = len(b)
 
-        res = self.reconstruction(n, m, eps, forecast_1)
-        res = max(min(res, m - 1), 0)
+        res = self.reconstruction(forecast_1)
+        res = max(min(res, self.m - 1), 0)
 
-        print("#", sorted(self.encode(n, m, eps, res).degrees))
+        print("#", sorted(self.encode(res).degrees))
 
         return res
 
 
+class LowEpsConverter(ConverterBase):
+    def __init__(self, m: int, eps: float):
+        mn = -1
+        for i in range(len(graphs)):
+            if len(graphs[i]) >= m:
+                mn = i
+                break
+
+        self.cnt = 3
+        self.mn = mn
+        n = self.mn * self.cnt
+        super().__init__(n, m, eps)
+
+    def encode(self, num: int) -> Graph:
+        res = Graph(self.n)
+        for i in range(self.cnt):
+            for j in range(self.mn):
+                for k in range(j + 1, self.mn):
+                    if graphs[self.mn][num].is_connected(j, k):
+                        res.connect(i * self.mn + j, i * self.mn + k)
+        return res
+
+    def decode(self, g: Graph) -> int:
+        return 0
+
+
 class HighEpsConverter(Converter):
-    def decode(self, n: int, m: int, eps: float, g: Graph) -> int:
+    def __init__(self, m: int, eps: float):
+        n = 100
+        super().__init__(m, eps, n)
+
+    def decode(self, g: Graph) -> int:
         print("#", sorted(g.degrees))
 
         d2 = []
-        for i in range(n):
+        for i in range(self.n):
             d_i = 0
             d_i += g.degrees[i]
             for j in g.adj(i):
@@ -420,10 +471,10 @@ class HighEpsConverter(Converter):
 
         forecast_1 = len(b)
 
-        res = self.reconstruction(n, m, eps, forecast_1)
-        res = max(min(res, m - 1), 0)
+        res = self.reconstruction(forecast_1)
+        res = max(min(res, self.m - 1), 0)
 
-        print("#", sorted(self.encode(n, m, eps, res).degrees))
+        print("#", sorted(self.encode(res).degrees))
 
         return res
 
@@ -436,34 +487,24 @@ def main():
     eps = float(eps)
 
     if eps <= 0.02:
-        n = -1
-        for i in range(len(graphs)):
-            if len(graphs[i]) >= m:
-                n = i
-                break
-
-        converter = OptimumConverter()
+        converter = OptimumConverter(m, eps)
+    elif eps < 0.1:
+        converter = Converter(m, eps)
     elif eps < 0.28:
-        if eps < 0.2:
-            n = m
-        else:
-            n = 100
-
-        converter = Converter()
+        converter = Converter(m, eps)
     else:
-        n = 100
-        converter = HighEpsConverter()
+        converter = HighEpsConverter(m, eps)
 
-    print(n)
-    for i in range(m):
-        print(converter.encode(n, m, eps, i).to_01())
+    print(converter.n)
+    for i in range(converter.m):
+        print(converter.encode(i).to_01())
 
     for i in range(100):
         g_01 = input()
         with open("./raw_input.txt", "a") as f:
             f.write(f"{g_01}\n")
-        g = Graph.from_01(n, g_01)
-        print(converter.decode(n, m, eps, g))
+        g = Graph.from_01(converter.n, g_01)
+        print(converter.decode(g))
 
 
 if __name__ == "__main__":
