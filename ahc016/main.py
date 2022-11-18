@@ -373,9 +373,11 @@ class Converter(ConverterBase):
             for j in range(n - i):
                 score += abs(a[j] - a_center) ** 2
             b_center = statistics.mean(b) if b else 0
-
             for j in range(i):
                 score += abs(b[j - i] - b_center) ** 2
+
+            if max(data) < n // 2 and i == 0:
+                score = 0
 
             if score < best_score:
                 best_score = score
