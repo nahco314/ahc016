@@ -433,7 +433,7 @@ def main():
     m = int(m)
     eps = float(eps)
 
-    if eps <= 0.05:
+    if eps <= 0.02:
         n = -1
         for i in range(len(graphs)):
             if len(graphs[i]) >= m:
@@ -441,7 +441,7 @@ def main():
                 break
 
         converter = OptimumConverter()
-    elif eps < 0.3:
+    elif eps < 0.28:
         if eps < 0.2:
             n = max(50, min(round(m), 100))
         else:

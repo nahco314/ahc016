@@ -81,7 +81,7 @@ def analyze_all(seed_start: int = Argument(0), seed_end: int = Argument(None)):
         if not is_exist(i):
             break
         m, eps, n, graphs, answers, corrects, wrongs, score = analyze_seed(i)
-        if eps >= 0.35:
+        if 0.05 <= eps <= 0.1:
             console.print(i, score, m, eps)
 
 
