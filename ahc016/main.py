@@ -445,7 +445,7 @@ def main():
         converter = OptimumConverter()
     elif eps < 0.28:
         if eps < 0.2:
-            n = max(50, min(round(m), 100))
+            n = m
         else:
             n = 100
 
