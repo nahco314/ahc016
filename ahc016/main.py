@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import statistics
 import sys
+import time
 from collections import Counter
 
 import networkx as nx
@@ -47,6 +48,13 @@ class Graph:
         self.degrees[i] += 1
         self.degrees[j] += 1
 
+    def disconnect(self, i: int, j: int):
+        if i > j:
+            i, j = j, i
+        self._is_connected[i][j] = False
+        self.degrees[i] -= 1
+        self.degrees[j] -= 1
+
     def to_nx_graph(self) -> nx.Graph:
         g = nx.Graph()
         for i in range(self.n):
@@ -74,6 +82,33 @@ class Graph:
 
     def adj(self, i: int) -> list[int]:
         return [j for j in range(self.n) if self.is_connected(i, j)]
+
+    def remove(self, i: int) -> Graph:
+        g = Graph(self.n - 1)
+        for j in range(self.n):
+            if j == i:
+                continue
+            for k in range(j + 1, self.n):
+                if k == i:
+                    continue
+                if self.is_connected(j, k):
+                    g.connect(j, k)
+        return g
+
+    def is_k_plex(self, k: int, s: list[int]):
+        l = len(s)
+
+        s_set = set(s)
+
+        for i in s:
+            cnt = 0
+            for j in self.adj(i):
+                if j in s_set:
+                    cnt += 1
+            if not l - cnt <= k:
+                return False
+
+        return True
 
 
 # 埋め込み最高！
@@ -457,29 +492,51 @@ class HighEpsConverter(Converter):
         super().__init__(m, eps, n)
 
     def decode(self, g: Graph) -> int:
-        print("#", sorted(g.degrees))
+        if max(g.degrees) < self.n // 2:
+            return 0
 
-        d2 = []
-        for i in range(self.n):
-            d_i = 0
-            d_i += g.degrees[i]
+        vs = sorted(range(self.n), key=lambda i: g.degrees[i], reverse=True)
+        sss = 0
+        ks = vs[:sss]
+
+        k_plex = [0] * self.n
+
+        for i in ks:
             for j in g.adj(i):
-                d_i += g.degrees[j]
-            d2.append(d_i)
+                if j < i:
+                    continue
+                if j in ks:
+                    k_plex[i] += 1
+                    k_plex[j] += 1
 
-        a, b = self.clustering(d2)
+        for it, v in enumerate(vs[sss:]):
+            ks.append(v)
+            for j in g.adj(v):
+                if j in ks:
+                    k_plex[v] += 1
+                    k_plex[j] += 1
 
-        forecast_1 = len(b)
+            k = len(ks) // 2 + 2
+            is_k_plex = True
+            for i in ks:
+                if not len(ks) - k_plex[i] <= k:
+                    is_k_plex = False
+                    break
 
-        res = self.reconstruction(forecast_1)
+            if is_k_plex:
+                pass
+            else:
+                ks.pop()
+
+        res = self.reconstruction(len(ks))
         res = max(min(res, self.m - 1), 0)
-
-        print("#", sorted(self.encode(res).degrees))
 
         return res
 
 
 def main():
+    start_time = time.time()
+
     m, eps = input().split()
     with open("./raw_input.txt", "w") as f:
         f.write(f"{m} {eps}\n")
@@ -505,6 +562,8 @@ def main():
             f.write(f"{g_01}\n")
         g = Graph.from_01(converter.n, g_01)
         print(converter.decode(g))
+
+    print(f"elapsed: {time.time() - start_time}", file=sys.stderr)
 
 
 if __name__ == "__main__":
